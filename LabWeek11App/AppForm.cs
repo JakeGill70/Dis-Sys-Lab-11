@@ -31,25 +31,50 @@ namespace LabWeek11App
             switch (tokens[0])
             {
                 case "set": // e.g. set 5001
-                    ProcessSet(tokens[1]);
+                    ProcessSet(tokens);
                     break;
                 case "connect":
-                    ProcessConnect(tokens[1]);
+                    ProcessConnect(tokens);
+                    break;
+                case "create_clock":
+                    ProcessCreateClock(tokens);
+                    break;
+                case "clock":
+                    ProcessClock(tokens);
                     break;
             }
         }
 
-        private void ProcessConnect(string portString) {
+        private void ProcessClock(string[] parameters) {
+            if (_localServer.Clock != null)
+            {
+                _localServer.ReportMessage("Clock: " + _localServer.Clock.Counter);
+            }
+            else {
+                _localServer.ReportMessage("Clock has not started yet.");
+            }
+        }
+
+        private void ProcessCreateClock(string[] parameters) {
+            parameters = parameters[1].Split("|");
+            int interval = int.Parse(parameters[0]);
+            int step = int.Parse(parameters[1]);
+            _localServer.Clock = new LogicalClock(interval, step);
+            _localServer.Clock.Start();
+            _localServer.ReportMessage("The clock has started...");
+        }
+
+        private void ProcessConnect(string[] parameters) {
             IPAddress localAddr = Dns.GetHostEntry(Dns.GetHostName()).AddressList[0];
-            int port = int.Parse(portString);
+            int port = int.Parse(parameters[1]);
             _remoteServer = new RemoteNode(_localServer);
             _remoteServer.ConnectToRemoteEndPoint(localAddr, port);
         }
 
-        private void ProcessSet(string parameters)
+        private void ProcessSet(string[] parameters)
         {
             // parameters ::= <port>
-            var port = Int32.Parse(parameters);
+            var port = Int32.Parse(parameters[1]);
             OutputBox.Text += "Port: " + port;
 
             _localServer = new ServerNode(port);
@@ -57,10 +82,6 @@ namespace LabWeek11App
             _localServer.SetupLocalEndPoint();
             OutputBox.Text += "\n" + _localServer.IPAddress.ToString(); // I like to be explicit :P
             _localServer.StartListening();
-            // Changed this after rejoining...
-            //Task.Factory.StartNew(() =>
-            //     _localServer.WaitForConnection()
-            //    );
             Task.Run(() => _localServer.WaitForConnection());
         }
     }
