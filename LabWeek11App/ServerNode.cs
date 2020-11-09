@@ -30,9 +30,12 @@ namespace LabWeek11App
         public void StartListening() {
             _listener = new Socket(IPAddress.AddressFamily,
                SocketType.Stream, ProtocolType.Tcp);
+            _listener.Bind(_localEndPoint);
+            _listener.Listen(10);
         }
 
         private void ProcessRequests(Socket handler) {
+            ReportMessage("Client connected: " + handler.RemoteEndPoint);
             handler.Shutdown(SocketShutdown.Both);
             handler.Close();
         }

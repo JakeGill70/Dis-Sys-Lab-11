@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Windows.Forms;
 using System.Threading.Tasks;
+using System.Net;
 
 namespace LabWeek11App
 {
     public partial class AppForm : Form
     {
         ServerNode _localServer;
+        RemoteNode _remoteServer;
 
         public AppForm()
         {
@@ -31,7 +33,17 @@ namespace LabWeek11App
                 case "set": // e.g. set 5001
                     ProcessSet(tokens[1]);
                     break;
+                case "connect":
+                    ProcessConnect(tokens[1]);
+                    break;
             }
+        }
+
+        private void ProcessConnect(string portString) {
+            IPAddress localAddr = Dns.GetHostEntry(Dns.GetHostName()).AddressList[0];
+            int port = int.Parse(portString);
+            _remoteServer = new RemoteNode(_localServer);
+            _remoteServer.ConnectToRemoteEndPoint(localAddr, port);
         }
 
         private void ProcessSet(string parameters)
@@ -45,9 +57,11 @@ namespace LabWeek11App
             _localServer.SetupLocalEndPoint();
             OutputBox.Text += "\n" + _localServer.IPAddress.ToString(); // I like to be explicit :P
             _localServer.StartListening();
-            Task.Factory.StartNew(() =>
-                 _localServer.WaitForConnection()
-                );
+            // Changed this after rejoining...
+            //Task.Factory.StartNew(() =>
+            //     _localServer.WaitForConnection()
+            //    );
+            Task.Run(() => _localServer.WaitForConnection());
         }
     }
 }
