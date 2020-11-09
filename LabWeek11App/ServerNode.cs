@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace LabWeek11App
@@ -36,9 +37,34 @@ namespace LabWeek11App
         }
 
         private void ProcessRequests(Socket handler) {
-            ReportMessage("Client connected: " + handler.RemoteEndPoint);
-            handler.Shutdown(SocketShutdown.Both);
-            handler.Close();
+            // Left over code from pre-part 4
+            //ReportMessage("Client connected: " + handler.RemoteEndPoint);
+            //handler.Shutdown(SocketShutdown.Both);
+            //handler.Close();
+
+            byte[] buffer = new byte[1024];
+            string data;
+            string request;
+            do
+            {
+                data = "";
+                while (true)
+                {
+                    int bytesRec = handler.Receive(buffer);
+                    data += Encoding.ASCII.GetString(buffer, 0, bytesRec);
+                    int index = data.IndexOf("<EOF>");
+                    if (index > -1)
+                    {
+                        request = data.Substring(0, index);
+                        break;
+                    }
+                }
+                ReportMessage($"RECEIVED:{request} at {Clock.Counter}");
+            } while (request != "Exit");
+
+
+
+            
         }
 
         public void WaitForConnection() {

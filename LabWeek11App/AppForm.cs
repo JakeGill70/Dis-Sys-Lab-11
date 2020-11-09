@@ -2,16 +2,18 @@
 using System.Windows.Forms;
 using System.Threading.Tasks;
 using System.Net;
+using System.Collections.Concurrent;
 
 namespace LabWeek11App
 {
     public partial class AppForm : Form
     {
         ServerNode _localServer;
-        RemoteNode _remoteServer;
+        ConcurrentDictionary<int, RemoteNode> _remoteServers;
 
         public AppForm()
         {
+            _remoteServers = new ConcurrentDictionary<int, RemoteNode>();
             InitializeComponent();
         }
 
@@ -27,7 +29,7 @@ namespace LabWeek11App
         private void ProcessCommand(string commandText)
         {
             // commandText ::= <command> <parameters>
-            var tokens = commandText.Split(' ');
+            var tokens = commandText.Split(" ", 2);
             switch (tokens[0])
             {
                 case "set": // e.g. set 5001
@@ -42,6 +44,23 @@ namespace LabWeek11App
                 case "clock":
                     ProcessClock(tokens);
                     break;
+                case "send":
+                    ProcessSend(tokens);
+                    break;
+            }
+        }
+
+        private void ProcessSend(string[] parameters) {
+            parameters = parameters[1].Split("|");
+            int port = int.Parse(parameters[0]);
+            string message = parameters[1];
+            message = $"Clock:{_localServer.Clock.Counter}:" + message;
+            if (_remoteServers.ContainsKey(port))
+            {
+                _remoteServers[port].SendRequest(message);
+            }
+            else {
+                _localServer.ReportMessage("Cannot send message to target. Not connected to node at port " + port);
             }
         }
 
@@ -67,8 +86,8 @@ namespace LabWeek11App
         private void ProcessConnect(string[] parameters) {
             IPAddress localAddr = Dns.GetHostEntry(Dns.GetHostName()).AddressList[0];
             int port = int.Parse(parameters[1]);
-            _remoteServer = new RemoteNode(_localServer);
-            _remoteServer.ConnectToRemoteEndPoint(localAddr, port);
+            _remoteServers[port] = new RemoteNode(_localServer);
+            _remoteServers[port].ConnectToRemoteEndPoint(localAddr, port);
         }
 
         private void ProcessSet(string[] parameters)
