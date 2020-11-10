@@ -36,12 +36,24 @@ namespace LabWeek11App
             _listener.Listen(10);
         }
 
-        private void ProcessRequests(Socket handler) {
-            // Left over code from pre-part 4
-            //ReportMessage("Client connected: " + handler.RemoteEndPoint);
-            //handler.Shutdown(SocketShutdown.Both);
-            //handler.Close();
+        private void UpdateLamportClock(string request) {
+            string[] requestTokens = request.Split(":");
+            long requestSendTime = long.Parse(requestTokens[1]);
+            ReportMessage("Counter received: " + requestSendTime);
+            if (requestSendTime > Clock.Counter)
+            {
+                Clock.SetCounter(requestSendTime);
+                ReportMessage("Clock updated to " + requestSendTime);
+            }
+            else {
+                ReportMessage("Clock not updated");
+            }
+        }
 
+        private void ProcessRequests(Socket handler) {
+
+            ReportMessage("Client connected: " + handler.RemoteEndPoint);
+            
             byte[] buffer = new byte[1024];
             string data;
             string request;
@@ -60,11 +72,11 @@ namespace LabWeek11App
                     }
                 }
                 ReportMessage($"RECEIVED:{request} at {Clock.Counter}");
+                UpdateLamportClock(request);
             } while (request != "Exit");
 
-
-
-            
+            handler.Shutdown(SocketShutdown.Both);
+            handler.Close();
         }
 
         public void WaitForConnection() {
