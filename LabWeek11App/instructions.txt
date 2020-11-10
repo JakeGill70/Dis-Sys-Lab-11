@@ -1,0 +1,184 @@
+﻿CSCI5150	Lab Week 11 – Lamport Logical Clocks	Fall 2020
+Lab created by: Dr. Jeff Roach, ETSU
+
+/////////////////////////////////////////////////////////////////
+Part 1 – Project Set Up
+/////////////////////////////////////////////////////////////////
+1.	Download zip file LabWeek11 and extract it somewhere convenient.
+2.	Build and then launch the application.
+2.1.	It does nothing yet
+2.2.	Type “set 5000” in the command box and then press enter
+2.3.	You should see Port: 5000 outputted in the window
+3.	Modify class ServerNode
+3.1.	Add property: int PortNumber
+3.2.	Add property: IPAddress IPAddress
+3.3.	Add private field: Socket _listener
+3.4.	Add private field: IPEndPoint _localEndPoint
+3.5.	Modify the constructor
+3.5.1.	Add parameter portNumber
+3.5.2.	Set the PortNumber property
+3.6.	Add public method: void SetupLocalEndPoint()
+3.6.1.	Set property IPAddress to the localhost (Use the Dns.GetHostEntry to do this)
+3.6.2.	Create the _localEndPoint
+3.7.	Add public method: void StartListening()
+3.7.1.	Create the _listener
+3.7.2.	Bind the _listener to _localEndPoint
+3.7.3.	Start listening with a backlog of 10
+3.8.	Add private method: void ProcessRequests(Socket handler)
+3.8.1.	Shutdown the handler
+3.8.2.	Close the handler
+3.9.	Add public method: void WaitForConnection()
+3.9.1.	Report “Waiting for a connection…” on a new line
+3.9.2.	Accept the connection into Socket handler
+3.9.3.	Launch ProcessRequests(handler) as a thread
+4.	Open the form’s code
+4.1.	Add private field: ServerNode _localServer
+4.2.	In the ProcessSet() method
+4.2.1.	Instantiate _localServer
+4.2.2.	Let the _localServer subscribe to a new StringObserver with OutputBox as the observer
+4.2.3.	Set up the local endpoint on the _localServer
+4.2.4.	Report the IPAddress of the _localServer
+4.2.5.	Start listening on _localServer
+4.2.6.	Launch WaitForConnection() on a thread
+5.	Launch the application
+5.1.	Set the port
+6.	Your output should look similar to:
+
+/////////////////////////////////////////////////////////////////
+Part 2 – Connect to Remote Node
+/////////////////////////////////////////////////////////////////
+1.	Create class RemoteNode
+1.1.	Add private field: Socket _remoteSocket
+1.2.	Add property: IPEndPoint RemoteEndPoint
+1.3.	Add property: ServerNode LocalServer
+2.	In class RemoteNode
+2.1.	Code the constructor
+2.1.1.	It has parameter: ServerNode localServer
+2.1.2.	Set the LocalServer
+2.1.3.	Set _remoteSocket to null
+2.1.4.	Set RemoteEndPoint to null
+3.	In class RemoteNode
+3.1.	Create method: void ConnectToRemoteEndPoint(IPAddress serverIpAddress, int serverPort)
+3.2.	Instanitate the RemoteEndPoint
+3.3.	Instantiate the _remoteSocket as a TCP stream
+3.4.	Connect to the RemoteEndPoint to the _remoteSocket
+3.5.	Use the LocalServer to report the connection to the RemoteEndPoint
+4.	Open the code behind of the form
+4.1.	Add private field: RemoteNode _remoteServer
+4.2.	Write code to process command: “connect <port>”
+4.2.1.	It connects to the remote node specified by port (assume localhost)
+4.2.1.1.	Use the _remoteServer
+5.	In ServerNode
+5.1.	After a client connects, report that a client has connected
+6.	Launch 2 servers
+6.1.	Allow one to connect to the other
+7.	Your output should look similar to:
+
+/////////////////////////////////////////////////////////////////
+Part 3 – The Logical Clock
+/////////////////////////////////////////////////////////////////
+1.	Create class LogicalClock
+1.1.	Add private field: System.Timers.Timer _timer
+1.2.	Add private field: int _interval
+1.3.	Add property: long Counter (private set, defaults to 0)
+1.4.	Add property: int Step 
+2.	In class LogicalClock
+2.1.	Code the constructor
+2.1.1.	Parameters: int interval, int step
+2.1.2.	Set _interval
+2.1.3.	Set Step
+2.1.4.	Instantiate _timer using _interval
+2.1.5.	Set _timer’s AutoReset to true
+2.1.6.	Append to _timer’s Elapsed event: OnTick
+2.1.6.1.	I.e. _timer.Elapsed += OnTick
+2.2.	Code OnTick: void OnTick(object sender, ElapsedEventArgs e)
+2.2.1.	It increments Counter by Step
+3.	In class LogicalClock
+3.1.	Code method: void Start()
+3.1.1.	Call Start on _timer
+3.2.	Code method: void Stop()
+3.2.1.	Call Stop on _timer
+4.	In class LogicalClock
+4.1.	It implements IDisposable
+4.2.	Implement method: void Dispose()
+4.2.1.	Stop the _timer
+4.2.2.	Dispose the _timer
+5.	In ServerNode
+5.1.	Add property: LogicalClock Clock
+6.	In the form code
+6.1.	Write code to process command “create_clock <interval>|<step>”
+6.1.1.	It instantiates Clock with interval and step
+6.1.2.	It starts the clock
+6.1.3.	It reports the clock has started
+6.2.	Write code to process command “clock”
+6.2.1.	It reports the Clock’s current Counter
+7.	Run the server and test the clock. Your output should be similar to below:
+
+/////////////////////////////////////////////////////////////////
+Part 4 – Sending Messages
+/////////////////////////////////////////////////////////////////
+1.	In class RemoteNode
+1.1.	Add method: void SendRequest(string request)
+1.1.1.	Use LocalServer to report the message to send
+1.1.2.	Encode request + “<EOF>” into bytes
+1.1.3.	Use _remoteSocket to send the encoded message
+2.	In the form code
+2.1.	Change the type of _remoteServer to a ConcurrentDictionary that maps ints to RemoteNodes
+2.1.1.	Give it a more appropriate name
+2.1.2.	Update the rest of code in the class accordingly. 
+2.1.2.1.	Use port as the key
+2.2.	Write code to process “send <port>|<message>”
+2.2.1.	It prepends “Clock:<counter>:” to <message>
+2.2.1.1.	Where <counter> is the clock’s counter
+2.2.2.	It sends the updated message to the remote node listening on <port>
+3.	In ServerNode
+3.1.	Modify ProcessRequests(handler) and add the following code
+/************************************************************
+* byte[] buffer = new byte[1024];
+* string data;
+* string request;
+* do
+* {
+*    data = "";
+*    while (true)
+*    {
+*       int bytesRec = handler.Receive(buffer);
+*       data += Encoding.ASCII.GetString(buffer, 0, bytesRec);
+*       int index = data.IndexOf("<EOF>");
+*       if (index > -1)
+*       {
+*          request = data.Substring(0, index);
+*          break;
+*       }
+*    }
+*    ReportMessage($"RECEIVED:{request} at {Clock.Counter}");
+* } while (request != "Exit");
+*************************************************************/
+4.	Create two servers
+4.1.	Create the clocks with different intervals and steps (e.g. step 5 for one and step 10 for another)
+4.2.	Connect to each other 
+4.3.	Send a simple message to each other
+5.	Your output should be similar to below:
+
+/////////////////////////////////////////////////////////////////
+Part 5 - Lamport Logical Clocks
+/////////////////////////////////////////////////////////////////
+Given: Each process Pi maintains a local counter Ci
+1.	Before executing an event, Pi increments Ci: Ci  Ci + 1
+2.	When process Pi sends a message m to process Pj, it sets m’s timestamp ts(m) equal to Ci after having executed the previous step.
+3.	Upon the receipt of a message m, process Pj adjusts its own local counter as Cj  max{cj, ts(m)} after which it then executes the first step and delivers the message to the application
+
+1.	In class LogicalClock
+1.1.	Create method: void IncrementCounter(int increment = 1)
+1.1.1.	It locks Counter and then increment it by increment 
+1.2.	Create method: void SetCounter(long counter)
+1.2.1.	It locks Counter and then sets it
+1.3.	Update OnTick to use IncrementCounter
+2.	Update the code to to use the Lamport Logical Clock algorithm.
+2.1.	If the clock is changed then report message “CLOCK UPDATED to <counter>!”
+2.2.	Otherwise report message “Clock not updated”
+3.	Create two servers
+3.1.	Create the clocks with different intervals and steps (e.g. step 5 for one and step 10 for another)
+3.2.	Connect to each other 
+3.3.	Send a simple message to each other
+4.	Your output should be similar to below:
