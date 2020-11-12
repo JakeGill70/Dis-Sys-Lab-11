@@ -80,7 +80,7 @@ namespace LabWeek11App
             int step = int.Parse(parameters[1]);
             _localServer.Clock = new LogicalClock(interval, step);
             _localServer.Clock.Start();
-            _localServer.ReportMessage("The clock has started...");
+            _localServer.ReportMessage($"The clock ({interval}|{step}) has started...");
         }
 
         private void ProcessConnect(string[] parameters) {
